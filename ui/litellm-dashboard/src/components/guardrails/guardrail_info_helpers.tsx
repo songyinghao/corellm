@@ -49,6 +49,7 @@ export const guardrail_provider_map: Record<string, string> = {
   ToolPermission: "tool_permission",
   BlockCodeExecution: "block_code_execution",
   Promptguard: "promptguard",
+  QostodianNexus: "qostodian_nexus",
 };
 
 // Function to populate provider map from API response - updates the original map
@@ -128,6 +129,7 @@ export const guardrailLogoMap: Record<string, string> = {
   PromptGuard: `${asset_logos_folder}promptguard.svg`,
   "LiteLLM Content Filter": `${asset_logos_folder}litellm_logo.jpg`,
   "Akto": `${asset_logos_folder}akto.svg`,
+  "Qostodian Nexus": `${asset_logos_folder}qohash.jpg`,
 };
 
 export const getGuardrailLogoAndName = (guardrailValue: string): { logo: string; displayName: string } => {
