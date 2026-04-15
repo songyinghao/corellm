@@ -267,6 +267,16 @@ You can also pass the `thinking` parameter to Gemini models.
 
 This is translated to Gemini's [`thinkingConfig` parameter](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
 
+For **Gemini 3+ models**, LiteLLM now follows provider defaults by default and does **not** force `thinkingLevel` when you pass Anthropic-style `thinking={"type":"enabled","budget_tokens":...}`.
+
+If you want the legacy LiteLLM behavior (force `thinkingLevel="low"` for Pro and `thinkingLevel="minimal"` for Flash), enable:
+
+```python
+import litellm
+
+litellm.enable_gemini_default_thinking_level_low = True
+```
+
 <Tabs>
 <TabItem value="sdk" label="SDK">
 
