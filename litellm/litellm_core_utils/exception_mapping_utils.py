@@ -2313,7 +2313,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                 else:
                     # if no status code then it is an APIConnectionError: https://github.com/openai/openai-python#handling-errors
                     raise APIConnectionError(
-                        message=f"{exception_provider} APIConnectionError - {message}\n{traceback.format_exc()}",
+                        message=f"{exception_provider} APIConnectionError - {message}\n{_redact_string(traceback.format_exc())}",
                         llm_provider="azure",
                         model=model,
                         litellm_debug_info=extra_information,
@@ -2440,7 +2440,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
             else:
                 raise APIConnectionError(
                     message="{}\n{}".format(
-                        str(original_exception), traceback.format_exc()
+                        str(original_exception), _redact_string(traceback.format_exc())
                     ),
                     llm_provider=custom_llm_provider,
                     model=model,
@@ -2469,7 +2469,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     setattr(e, "litellm_response_headers", litellm_response_headers)
                     raise e  # it's already mapped
             raised_exc = APIConnectionError(
-                message="{}\n{}".format(original_exception, traceback.format_exc()),
+                message="{}\n{}".format(original_exception, _redact_string(traceback.format_exc())),
                 llm_provider="",
                 model="",
             )
