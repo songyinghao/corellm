@@ -33,7 +33,8 @@ from litellm.types.proxy.guardrails.guardrail_hooks.tool_permission import (
     ToolPermissionGuardrailConfigModel,
 )
 from litellm.types.proxy.guardrails.guardrail_hooks.hiddenlayer import (
-    HiddenlayerGuardrailConfigModel
+    HiddenlayerGuardrailConfigModel,
+)
 from litellm.types.proxy.guardrails.guardrail_hooks.qohash import (
     QostodianNexusConfigModel,
 )
@@ -769,7 +770,7 @@ class LitellmParams(
     IBMGuardrailsBaseConfigModel,
     QualifireGuardrailConfigModel,
     BlockCodeExecutionGuardrailConfigModel,
-    HiddenlayerGuardrailConfigModel
+    HiddenlayerGuardrailConfigModel,
     QostodianNexusConfigModel,
 ):
     guardrail: str = Field(description="The type of guardrail integration to use")
