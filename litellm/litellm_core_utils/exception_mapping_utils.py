@@ -6,8 +6,13 @@ from typing import Any, Optional
 import httpx
 
 import litellm
-from litellm._logging import _ENABLE_SECRET_REDACTION, verbose_logger
+from litellm._logging import _ENABLE_SECRET_REDACTION, redact_secrets, verbose_logger
 from litellm.litellm_core_utils.secret_redaction import redact_string
+
+# Tracebacks embedded in mapped exceptions must use logging-layer redaction (PEM,
+# ya29.* tokens, etc.) and respect LITELLM_DISABLE_REDACT_SECRETS. Some call sites
+# refer to this as `_redact_string` (private helper in `_logging.py`).
+_redact_string = redact_secrets
 from litellm.types.utils import LlmProviders
 
 from ..exceptions import (
@@ -2313,7 +2318,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                 else:
                     # if no status code then it is an APIConnectionError: https://github.com/openai/openai-python#handling-errors
                     raise APIConnectionError(
-                        message=f"{exception_provider} APIConnectionError - {message}\n{redact_string(traceback.format_exc()) if _ENABLE_SECRET_REDACTION else traceback.format_exc()}",
+                        message=f"{exception_provider} APIConnectionError - {message}\n{_redact_string(traceback.format_exc())}",
                         llm_provider="azure",
                         model=model,
                         litellm_debug_info=extra_information,
@@ -2441,9 +2446,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                 raise APIConnectionError(
                     message="{}\n{}".format(
                         str(original_exception),
-                        redact_string(traceback.format_exc())
-                        if _ENABLE_SECRET_REDACTION
-                        else traceback.format_exc(),
+                        _redact_string(traceback.format_exc()),
                     ),
                     llm_provider=custom_llm_provider,
                     model=model,
@@ -2474,9 +2477,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
             raised_exc = APIConnectionError(
                 message="{}\n{}".format(
                     original_exception,
-                    redact_string(traceback.format_exc())
-                    if _ENABLE_SECRET_REDACTION
-                    else traceback.format_exc(),
+                    _redact_string(traceback.format_exc()),
                 ),
                 llm_provider="",
                 model="",
