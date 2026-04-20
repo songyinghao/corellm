@@ -2476,8 +2476,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     raise e  # it's already mapped
             raised_exc = APIConnectionError(
                 message="{}\n{}".format(
-                    original_exception,
-                    _redact_string(traceback.format_exc()),
+                    original_exception, _redact_string(traceback.format_exc())
                 ),
                 llm_provider="",
                 model="",
