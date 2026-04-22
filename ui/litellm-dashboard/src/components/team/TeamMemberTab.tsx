@@ -1,6 +1,7 @@
 import { useUISettings } from "@/app/(dashboard)/hooks/uiSettings/useUISettings";
 import useAuthorized from "@/app/(dashboard)/hooks/useAuthorized";
 import { Member } from "@/components/networking";
+import { BUDGET_WINDOW_OPTIONS } from "@/components/key_team_helpers/BudgetWindowsEditor";
 import { formatNumberWithCommas } from "@/utils/dataUtils";
 import { isProxyAdminRole, isUserTeamAdminForSingleTeam } from "@/utils/roles";
 import { InfoCircleOutlined } from "@ant-design/icons";
@@ -8,6 +9,47 @@ import { Space, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import MemberTable from "@/components/common_components/MemberTable";
 import { TeamData } from "./TeamInfo";
+
+const RELATIVE_TIME_FORMAT = new Intl.RelativeTimeFormat(undefined, {
+  numeric: "auto",
+});
+
+const formatRelativeTime = (target: Date): string => {
+  const diffSec = Math.round((target.getTime() - Date.now()) / 1000);
+  const abs = Math.abs(diffSec);
+  if (abs < 60) return RELATIVE_TIME_FORMAT.format(diffSec, "second");
+  const diffMin = Math.round(diffSec / 60);
+  if (Math.abs(diffMin) < 60) return RELATIVE_TIME_FORMAT.format(diffMin, "minute");
+  const diffHr = Math.round(diffMin / 60);
+  if (Math.abs(diffHr) < 24) return RELATIVE_TIME_FORMAT.format(diffHr, "hour");
+  const diffDay = Math.round(diffHr / 24);
+  return RELATIVE_TIME_FORMAT.format(diffDay, "day");
+};
+
+const formatBudgetReset = (
+  budgetDuration: string | null,
+  budgetResetAt: string | null,
+): { label: string; tooltip: string } | null => {
+  if (!budgetDuration && !budgetResetAt) return null;
+  const presetLabel = budgetDuration
+    ? BUDGET_WINDOW_OPTIONS.find((o) => o.value === budgetDuration)?.label
+    : undefined;
+  const label = budgetDuration ?? "";
+  if (!budgetResetAt) {
+    return { label, tooltip: presetLabel ?? budgetDuration ?? "" };
+  }
+  const date = new Date(budgetResetAt);
+  const isPastDue = date.getTime() <= Date.now();
+  const relative = isPastDue ? "resetting any moment now" : `resets ${formatRelativeTime(date)}`;
+  const absolute = date.toLocaleString();
+  const cycleSuffix = budgetDuration
+    ? `. Cycle: ${presetLabel ? `${presetLabel} (${budgetDuration})` : budgetDuration}.`
+    : ".";
+  return {
+    label: label || relative,
+    tooltip: `Next reset: ${absolute}${cycleSuffix} ${relative.charAt(0).toUpperCase() + relative.slice(1)}.`,
+  };
+};
 
 interface TeamMemberTabProps {
   teamData: TeamData;
@@ -50,6 +92,24 @@ export default function TeamMemberTab({
     if (!userId) return 0;
     const membership = teamData.team_memberships.find((tm) => tm.user_id === userId);
     return membership?.spend || 0;
+  };
+
+  const getUserTotalSpend = (userId: string | null): number => {
+    if (!userId) return 0;
+    const membership = teamData.team_memberships.find((tm) => tm.user_id === userId);
+    return membership?.total_spend ?? 0;
+  };
+
+  const getUserBudgetDuration = (userId: string | null): string | null => {
+    if (!userId) return null;
+    const membership = teamData.team_memberships.find((tm) => tm.user_id === userId);
+    return membership?.litellm_budget_table?.budget_duration ?? null;
+  };
+
+  const getUserBudgetResetAt = (userId: string | null): string | null => {
+    if (!userId) return null;
+    const membership = teamData.team_memberships.find((tm) => tm.user_id === userId);
+    return membership?.litellm_budget_table?.budget_reset_at ?? null;
   };
 
   const getUserBudget = (userId: string | null): string | null => {
@@ -124,8 +184,8 @@ export default function TeamMemberTab({
     {
       title: (
         <Space direction="horizontal">
-          Team Member Spend (USD)
-          <Tooltip title="This is the amount spent by a user in the team.">
+          Current Cycle Spend (USD)
+          <Tooltip title="Spend accrued in the current budget cycle. Resets when the member's budget window rolls over. If no budget is set, this equals the total spend for the team.">
             <InfoCircleOutlined />
           </Tooltip>
         </Space>
@@ -133,6 +193,20 @@ export default function TeamMemberTab({
       key: "spend",
       render: (_: unknown, record: Member) => (
         <Typography.Text>${formatNumberWithCommas(getUserSpend(record.user_id), 4)}</Typography.Text>
+      ),
+    },
+    {
+      title: (
+        <Space direction="horizontal">
+          Total Spend (USD)
+          <Tooltip title="Total spend by this member within this team. Not reset by budget cycles. Tracking began 2026-04-21; spend from before that date is not included.">
+            <InfoCircleOutlined />
+          </Tooltip>
+        </Space>
+      ),
+      key: "total_spend",
+      render: (_: unknown, record: Member) => (
+        <Typography.Text>${formatNumberWithCommas(getUserTotalSpend(record.user_id), 4)}</Typography.Text>
       ),
     },
     {
@@ -144,6 +218,31 @@ export default function TeamMemberTab({
           <Typography.Text>
             {budget ? `$${formatNumberWithCommas(Number(budget), 4)}` : "No Limit"}
           </Typography.Text>
+        );
+      },
+    },
+    {
+      title: (
+        <Space direction="horizontal">
+          Budget Reset
+          <Tooltip title="When this member's budget cycle next resets. Set by the member's budget duration (e.g. Daily, Monthly).">
+            <InfoCircleOutlined />
+          </Tooltip>
+        </Space>
+      ),
+      key: "budget_reset",
+      render: (_: unknown, record: Member) => {
+        const resetInfo = formatBudgetReset(
+          getUserBudgetDuration(record.user_id),
+          getUserBudgetResetAt(record.user_id),
+        );
+        if (!resetInfo) {
+          return <Typography.Text type="secondary">—</Typography.Text>;
+        }
+        return (
+          <Tooltip title={resetInfo.tooltip}>
+            <Typography.Text aria-label={resetInfo.tooltip}>{resetInfo.label}</Typography.Text>
+          </Tooltip>
         );
       },
     },
